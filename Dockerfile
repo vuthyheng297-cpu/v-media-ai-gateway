@@ -1,16 +1,9 @@
-﻿FROM calciumion/new-api:latest AS backend-base
+﻿FROM calciumion/new-api:latest
 
-FROM node:20-alpine
-WORKDIR /app
-
-# Copy new-api binary from official docker image
-COPY --from=backend-base /one-api /app/new-api
-
-# Copy app files
-COPY package.json ./
-COPY index.js ./
-COPY dist ./dist
+# Put our V-Media custom UI directly into the web build path that new-api serves!
+# In new-api, static files are served from /web/build or /app/web/build
+COPY dist/ /web/build/
+COPY dist/ /app/web/build/
 
 EXPOSE 3000
 ENV PORT=3000
-CMD ["node", "index.js"]
