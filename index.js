@@ -1,5 +1,4 @@
 ﻿const http = require('http');
-const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -7,32 +6,29 @@ const { spawn } = require('child_process');
 const PORT = process.env.PORT || 3000;
 const BACKEND_PORT = 3001;
 
-// Set env for backend binary
-process.env.PORT = BACKEND_PORT;
-process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'vmedia_secret_gateway_2026_key';
+console.log(`[V-Media Gateway] Initializing system on port ${PORT}...`);
 
-console.log(`[Master] Starting V-Media Backend on port ${BACKEND_PORT}...`);
-
-// Determine binary to run (Linux on Render)
-const backendBin = path.join(__dirname, 'new-api');
-let backendProcess = null;
+// Find new-api binary
+let backendBin = '/new-api';
+if (!fs.existsSync(backendBin)) {
+  backendBin = path.join(__dirname, 'new-api');
+}
 
 if (fs.existsSync(backendBin)) {
-  fs.chmodSync(backendBin, 0o755);
-  backendProcess = spawn(backendBin, [], {
-    env: { ...process.env, PORT: BACKEND_PORT },
-    stdio: 'inherit'
-  });
+  console.log(`[Backend] Spawning new-api binary at ${backendBin} on port ${BACKEND_PORT}...`);
+  try { fs.chmodSync(backendBin, 0o755); } catch(e) {}
+  
+  const env = { 
+    ...process.env, 
+    PORT: String(BACKEND_PORT),
+    SESSION_SECRET: process.env.SESSION_SECRET || 'vmedia_secret_gateway_2026_key'
+  };
 
-  backendProcess.on('error', (err) => {
-    console.error('[Backend] Failed to start:', err);
-  });
-
-  backendProcess.on('exit', (code) => {
-    console.log(`[Backend] Exited with code ${code}`);
-  });
+  const proc = spawn(backendBin, [], { env, stdio: 'inherit' });
+  proc.on('error', (err) => console.error('[Backend Error]:', err));
+  proc.on('exit', (code) => console.log(`[Backend] Exited with code ${code}`));
 } else {
-  console.warn('[Backend] Binary not found at', backendBin);
+  console.error('[Backend] FATAL: new-api binary not found anywhere!');
 }
 
 const dist = path.join(__dirname, 'dist');
@@ -63,7 +59,7 @@ const server = http.createServer((req, res) => {
 
     proxyReq.on('error', (err) => {
       res.writeHead(502, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Backend connecting...', detail: err.message }));
+      res.end(JSON.stringify({ error: 'Backend starting up, please refresh in 3 seconds...', detail: err.message }));
     });
 
     req.pipe(proxyReq);
@@ -81,5 +77,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`[V-Media Gateway] Running on port ${PORT}`);
+  console.log(`[V-Media Gateway] Fully LIVE and listening on port ${PORT}!`);
 });
