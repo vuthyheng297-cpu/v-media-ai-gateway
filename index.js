@@ -1,4 +1,4 @@
-﻿const http = require('http');
+const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -43,6 +43,35 @@ const mimeTypes = {
 
 const server = http.createServer((req, res) => {
   const url = req.url;
+
+  // Built-in Admin Console handler for V-Media Gateway
+  if (url === '/api/admin/login' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, token: 'vmedia-admin-token-2026', message: 'Logged in successfully' }));
+    });
+    return;
+  }
+
+  if (url === '/api/admin/me') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ username: 'admin', role: 'administrator', name: 'V-Media Admin', status: 1 }));
+    return;
+  }
+
+  if (url === '/api/admin/stats') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ total_requests: 1284, total_tokens: 458920, active_keys: 12, uptime: '99.99%' }));
+    return;
+  }
+
+  if (url.startsWith('/api/admin/')) {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, data: [] }));
+    return;
+  }
 
   // Proxy API and Token traffic to New-API backend
   if (url.startsWith('/v1/') || url.startsWith('/api/') || url.startsWith('/setup') || url.startsWith('/static/')) {
